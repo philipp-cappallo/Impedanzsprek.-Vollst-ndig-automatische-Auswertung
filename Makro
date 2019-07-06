@@ -1,0 +1,90 @@
+function auswertung(verstaerkung)
+
+variable verstaerkung
+variable amp_current, amp_potential
+amp_potential = 0.01
+variable omega
+variable impedanz
+variable dt
+
+
+wave C1,C2
+wave W_coef
+
+setDataFolder root:
+
+if (dataFolderExists("root:'Auswertung'") == 0)
+newDataFolder Auswertung
+endif
+
+if (Exists("root:'Auswertung':'impedanz_w'") == 0)
+make /n=(CountObjects(":",4)-1) root:'Auswertung':impedanz_w
+endif
+
+if (Exists("root:'Auswertung':'omega_w'") == 0)
+make /n=(CountObjects(":",4)-1) root:'Auswertung':omega_w
+endif
+
+variable ii=0
+do
+if (ii > (CountObjects(":",4)-2))
+break
+endif
+
+
+
+setDataFolder GetIndexedObjName(":", 4, ii)
+
+wave C1,C2
+wave W_coef
+  String path = "root:'Auswertung':'omega_w'"
+   wave omega_w = $path
+  String path2 = "root:'Auswertung':'impedanz_w'"
+   wave impedanz_w = $path2
+wave TimeW
+
+dt=abs(TimeW[1]-TimeW[0])
+
+SetScale/P x 0,dt,"", C1,C2
+duplicate /o C1, potential
+duplicate /o C2, current
+current = C2/verstaerkung
+display /k=0 potential
+appendtograph /R current
+ModifyGraph axRGB(left)=(0,15872,65280),axRGB(right)=(65280,0,0);DelayUpdate
+ModifyGraph tlblRGB(left)=(0,15872,65280),tlblRGB(right)=(65280,0,0);DelayUpdate
+ModifyGraph alblRGB(left)=(0,15872,65280),alblRGB(right)=(65280,0,0)
+ModifyGraph rgb(potential)=(0,15872,65280)
+
+CurveFit/NTHR=1 sin  potential /D 
+ModifyGraph lsize(fit_potential)=2,rgb(fit_potential)=(0,0,0)
+CurveFit/H="0010"/NTHR=1 sin  current /D
+ModifyGraph lsize(fit_current)=2,rgb(fit_current)=(0,39168,0) 
+killWindow /Z Graph0
+
+String path3= GetDataFolder(1) + "'W_coef'"
+wave W_co =$path3
+
+omega = W_co[2]
+omega_w[ii] = omega
+print omega
+print Exists("root:'Auswertung':'omega_w'")
+
+
+amp_current = W_co[1]
+impedanz = amp_potential/amp_current
+impedanz_w[ii] = abs(impedanz)
+print abs(impedanz)
+print Exists("root:'Auswertung':'impedanz_w'")
+
+setDataFolder root:
+ii=ii+1
+ while(1)
+
+display root:'Auswertung':'impedanz_w' vs root:'Auswertung':'omega_w'
+Label left "Impedanz [Ohm]";DelayUpdate
+Label bottom "Frequenz [Hz]"
+ModifyGraph log(left)=1
+ModifyGraph log(bottom)=1
+ 
+end
